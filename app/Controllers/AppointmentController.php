@@ -67,6 +67,24 @@ class AppointmentController extends BaseController
     }
 
     /**
+     * Display the Calendar View
+     */
+    public function calendar()
+    {
+        $dentistModel = new \App\Models\DentistModel();
+        $serviceModel = new \App\Models\ServiceModel();
+
+        $data = [
+            'title'    => 'Appointment Calendar',
+            'dentists' => $dentistModel->findAll(),
+            'services' => $serviceModel->where('status', 'active')->findAll(),
+        ];
+
+        // Siguraduhin na may file ka sa: app/Views/admin/appointments/calendar.php
+        return view('admin/appointments/calendar', $data);
+    }
+    
+    /**
      * Helper: Check if Dentist has an overlapping appointment
      * Formula: (StartA < EndB) AND (EndA > StartB)
      */

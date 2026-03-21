@@ -24,27 +24,32 @@
             </a>
 
             <!-- SIDEBAR (Snippet) -->
-<?php if (session()->get('role') == 'admin'): ?>
-    <a href="<?= base_url('admin/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800">
-        <i class="fas fa-list mr-3"></i> Appointment List
-    </a>
+            <?php if (session()->get('role') == 'admin'): ?>
+                <a href="<?= base_url('admin/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-list mr-3"></i> Appointment List
+                </a>
 
-    <a href="<?= base_url('admin/appointments/calendar') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800">
-        <i class="fas fa-calendar-alt mr-3"></i> Calendar View
-    </a>
+                <a href="<?= base_url('admin/appointments/calendar') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-alt mr-3"></i> Calendar View
+                </a>
 
-    <!-- ITO ANG DAGDAG NA LINK -->
-    <a href="<?= base_url('admin/dentists') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
-        <i class="fas fa-user-md mr-3"></i> Dentists
-    </a>
+                <!-- ITO ANG DAGDAG NA WALK-IN OPTION -->
+                <a href="<?= base_url('admin/walkin') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-walking mr-3"></i>Walk-in Patient
+                </a>
 
-    <a href="#" class="flex items-center p-3 rounded-lg hover:bg-slate-800">
-        <i class="fas fa-users mr-3"></i> Patients
-    </a>
-    <a href="<?= base_url('admin/services') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800">
-        <i class="fas fa-tooth mr-3"></i> Services
-    </a>
-<?php endif; ?>
+                <a href="<?= base_url('admin/dentists') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-user-md mr-3"></i> Dentists
+                </a>
+
+                <a href="<?= base_url('admin/patients') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-users mr-3"></i> Patients
+                </a>
+
+                <a href="<?= base_url('admin/services') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-tooth mr-3"></i> Services
+                </a>
+            <?php endif; ?>
         </nav>
 
         <div class="p-4 border-t border-slate-800">
