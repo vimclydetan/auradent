@@ -110,6 +110,33 @@
         ring: 2px;
         ring-color: #bfdbfe;
     }
+
+    .step-hidden {
+        display: none;
+    }
+
+    .medical-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .step-indicator {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .step-dot {
+        height: 6px;
+        flex: 1;
+        border-radius: 10px;
+        background: #e2e8f0;
+    }
+
+    .step-dot.active {
+        background: #2563eb;
+    }
 </style>
 
 <!-- ALERTS -->
@@ -181,8 +208,8 @@
                     <td class="p-4 font-bold text-slate-700"><?= esc($a['patient_name']) ?></td>
                     <td class="p-4 font-medium text-blue-600"> <?= esc($a['dentist_name'] ?: 'N/A') ?></td>
                     <td class="p-4">
-                        <div class="text-xs font-bold text-slate-700"><?= date('M d, Y', strtotime($a['appointment_date'])) ?></div>
-                        <div class="text-[10px] text-blue-600 italic"><?= date('h:i A', strtotime($a['appointment_time'])) ?> - <?= date('h:i A', strtotime($a['end_time'])) ?></div>
+                        <div class="text-xs font-bold text-slate-700"><?= $a['fmt_date'] ?? date('M d, Y', strtotime($a['appointment_date'])) ?></div>
+                        <div class="text-[10px] text-blue-600 italic"><?= $a['fmt_time'] ?? date('h:i A', strtotime($a['appointment_time'])) ?> - <?= $a['fmt_end'] ?? date('h:i A', strtotime($a['end_time'])) ?></div>
                     </td>
                     <td class="p-4 font-medium text-slate-600"><?= esc($a['service_name']) ?></td>
                     <td class="p-4 text-center">
@@ -192,185 +219,12 @@
                     <td class="p-4 text-center">
                         <div class="flex justify-center gap-2">
                             <button onclick='viewAppointment(<?= json_encode($a) ?>)' class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-slate-800 hover:text-white transition-all">View</button>
-
-                            <?php if ($a['status'] === 'Pending'): ?>
-                                <a href="<?= base_url('admin/appointments/status/' . $a['id'] . '/Confirmed') ?>" onclick="return confirm('Confirm?')" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-blue-600 hover:text-white transition-colors">Confirm</a>
-                                <button onclick="openRescheduleModal(<?= $a['id'] ?>, '<?= $a['appointment_date'] ?>', '<?= $a['appointment_time'] ?>', '<?= $a['end_date'] ?>', '<?= $a['end_time'] ?>', '<?= $a['dentist_id'] ?>')" class="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-amber-500 hover:text-white transition-colors">Resched</button>
-                                <a href="<?= base_url('admin/appointments/status/' . $a['id'] . '/Cancelled') ?>" onclick="return confirm('Cancel appointment?')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-red-600 hover:text-white transition-colors">Cancel</a>
-                            <?php elseif ($a['status'] === 'Confirmed'): ?>
-                                <a href="<?= base_url('admin/appointments/status/' . $a['id'] . '/Completed') ?>" onclick="return confirm('Mark as Completed?')" class="bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-green-700 shadow-sm transition-all">Done</a>
-                                <a href="<?= base_url('admin/appointments/status/' . $a['id'] . '/Cancelled') ?>" onclick="return confirm('Cancel appointment?')" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-red-600 hover:text-white transition-colors">Cancel</a>
-                            <?php endif; ?>
                         </div>
                     </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
-</div>
-
-<!-- BOOKING MODAL -->
-<div id="apptModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-start justify-center p-4 z-50 overflow-y-auto">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-4 flex flex-col overflow-hidden">
-        <div class="p-4 border-b flex justify-between items-center bg-slate-50">
-            <h4 class="font-bold text-lg text-slate-800 uppercase">Book New Appointment</h4>
-            <button onclick="closeModal()" class="text-slate-400 text-2xl hover:text-slate-600">&times;</button>
-        </div>
-
-        <form action="<?= base_url('admin/appointments/store') ?>" method="POST" id="apptForm">
-            <?= csrf_field() ?>
-
-            <!-- ERROR DISPLAY -->
-            <?php if (session()->getFlashdata('error') || session()->getFlashdata('validation_errors')): ?>
-                <div class="m-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded shadow-sm text-xs">
-                    <p class="font-bold mb-1 uppercase tracking-widest">Kailangang Ayusin:</p>
-                    <ul class="list-disc ml-5">
-                        <?php if (session()->getFlashdata('error')): ?><li><?= session()->getFlashdata('error') ?></li><?php endif; ?>
-                        <?php if (session()->getFlashdata('validation_errors')): ?>
-                            <?php foreach (session()->getFlashdata('validation_errors') as $err): ?><li><?= esc($err) ?></li><?php endforeach; ?>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
-            <div class="p-6 space-y-8">
-                <!-- 1. ACCOUNT TYPE & DENTIST -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-3">
-                        <label class="fixed-label text-blue-600">Patient Type</label>
-                        <div class="flex gap-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="account_type" value="existing" <?= old('account_type', 'existing') === 'existing' ? 'checked' : '' ?> onchange="toggleAccountType()" class="w-4 h-4 text-blue-600">
-                                <span class="ml-2 text-sm font-medium">Existing Patient</span>
-                            </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="account_type" value="new" <?= old('account_type') === 'new' ? 'checked' : '' ?> onchange="toggleAccountType()" class="w-4 h-4 text-blue-600">
-                                <span class="ml-2 text-sm font-bold text-blue-600 underline">New Patient Registration</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="fixed-label text-indigo-600">Assign Dentist *</label>
-                        <select name="dentist_id" required class="w-full p-3 border rounded-xl text-sm font-bold bg-white">
-                            <option value="">-- Choose Dentist --</option>
-                            <?php foreach ($dentists as $d): ?>
-                                <option value="<?= $d['id'] ?>" <?= old('dentist_id') == $d['id'] ? 'selected' : '' ?>><?= esc($d['first_name'] . ' ' . $d['last_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- EXISTING PATIENT SEARCH -->
-                <div id="existing_patient_div" class="<?= old('account_type', 'existing') === 'new' ? 'hidden' : '' ?> space-y-1">
-                    <label class="fixed-label text-blue-600">Search Patient Name</label>
-                    <select name="patient_id" id="patient_search" class="w-full">
-                        <?php if (old('patient_id')): ?>
-                            <option value="<?= old('patient_id') ?>" selected>Patient Selected (Record ID: #<?= old('patient_id') ?>)</option>
-                        <?php endif; ?>
-                    </select>
-                </div>
-
-                <!-- NEW PATIENT FORM -->
-                <div id="new_patient_div" class="<?= old('account_type') === 'new' ? '' : 'hidden' ?> space-y-6">
-                    <div class="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-6">
-                        <h5 class="text-xs font-black text-blue-500 uppercase italic">Step 1: Personal Info</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="floating-label-group md:col-span-1"><input type="text" name="first_name" value="<?= old('first_name') ?>" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">First Name *</label></div>
-                            <div class="floating-label-group md:col-span-1"><input type="text" name="middle_name" value="<?= old('middle_name') ?>" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Middle Name</label></div>
-                            <div class="floating-label-group md:col-span-1"><input type="text" name="last_name" value="<?= old('last_name') ?>" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Last Name *</label></div>
-                            <select name="name_suffix" class="w-full p-2.5 border rounded-lg text-sm bg-white">
-                                <option value="">No Suffix</option>
-                                <?php foreach (['Jr.', 'Sr.', 'III'] as $sfx): ?><option value="<?= $sfx ?>" <?= old('name_suffix') == $sfx ? 'selected' : '' ?>><?= $sfx ?></option><?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="fixed-label text-slate-500">Birthdate *</label><input type="date" name="birthdate" value="<?= old('birthdate') ?>" class="w-full p-2 border rounded-lg text-sm"></div>
-                            <div><label class="fixed-label text-slate-500">Gender</label><select name="gender" class="w-full p-2.5 border rounded-lg text-sm">
-                                    <option value="Male" <?= old('gender') == 'Male' ? 'selected' : '' ?>>Male</option>
-                                    <option value="Female" <?= old('gender') == 'Female' ? 'selected' : '' ?>>Female</option>
-                                </select></div>
-                            <div class="floating-label-group"><input type="tel" name="primary_mobile" id="primary_mobile" value="<?= old('primary_mobile') ?>" maxlength="15" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm font-bold text-blue-600"><label class="floating-label">Mobile Number *</label></div>
-                        </div>
-                        <!-- ADDRESS SECTION -->
-                        <h5 class="text-xs font-black text-blue-500 uppercase italic">Step 2: PH Address</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="floating-label-group"><select name="region" id="reg_select" onchange="loadProvinces(this.value)" class="floating-input w-full p-2.5 border rounded-lg text-sm">
-                                    <option value="" selected disabled></option>
-                                </select><label class="floating-label">Region *</label></div>
-                            <div class="floating-label-group"><select name="province" id="prov_select" onchange="loadCities(this.value)" disabled class="floating-input w-full p-2.5 border rounded-lg text-sm">
-                                    <option value="" selected disabled></option>
-                                </select><label class="floating-label">Province *</label></div>
-                            <div class="floating-label-group"><select name="city" id="city_select" onchange="loadBarangays(this.value)" disabled class="floating-input w-full p-2.5 border rounded-lg text-sm">
-                                    <option value="" selected disabled></option>
-                                </select><label class="floating-label">City/Municipality *</label></div>
-                            <div class="floating-label-group"><select name="barangay" id="brgy_select" disabled class="floating-input w-full p-2.5 border rounded-lg text-sm">
-                                    <option value="" selected disabled></option>
-                                </select><label class="floating-label">Barangay *</label></div>
-                        </div>
-                        <h5 class="text-xs font-black text-blue-500 uppercase italic">Step 3: Security</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="floating-label-group"><input type="text" name="username" value="<?= old('username') ?>" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Username *</label></div>
-                            <div class="floating-label-group"><input type="email" name="email" value="<?= old('email') ?>" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Email Address *</label></div>
-                            <div class="floating-label-group relative"><input type="password" name="password" id="reg_pass" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Password *</label><i class="fas fa-eye password-toggle" onclick="togglePass('reg_pass', this)"></i></div>
-                            <div class="floating-label-group relative"><input type="password" name="confirm_password" id="reg_confirm" placeholder=" " class="floating-input w-full p-2.5 border rounded-lg text-sm bg-white"><label class="floating-label">Confirm Password *</label><i class="fas fa-eye password-toggle" onclick="togglePass('reg_confirm', this)"></i></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SERVICES -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center"><label class="fixed-label text-blue-600">Selected Services *</label><button type="button" onclick="addServiceRow()" class="text-[10px] bg-slate-800 text-white px-3 py-1 rounded-full hover:bg-black transition-all">+ Add Service</button></div>
-                    <div id="services_container" class="space-y-3">
-                        <?php
-                        $hasLevelsMap = [];
-                        foreach ($services as $s) {
-                            $hasLevelsMap[$s['id']] = $s['has_levels'];
-                        }
-                        $oldS = old('services', ['']);
-                        $oldL = old('levels', []);
-                        foreach ($oldS as $idx => $val):
-                            $showL = isset($hasLevelsMap[$val]) && $hasLevelsMap[$val] == '1';
-                        ?>
-                            <div class="service-row flex gap-3 items-start bg-slate-50 p-3 border rounded-xl">
-                                <select name="services[]" onchange="checkLevels(this)" class="flex-1 p-2.5 border rounded-lg text-sm bg-white" required>
-                                    <option value="">-- Choose Service --</option>
-                                    <?php foreach ($services as $s): ?>
-                                        <option value="<?= $s['id'] ?>" data-haslevels="<?= $s['has_levels'] ?>" <?= $val == $s['id'] ? 'selected' : '' ?>><?= $s['service_name'] ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="flex-1 level-div <?= $showL ? '' : 'hidden' ?>">
-                                    <select name="levels[]" class="w-full p-2.5 border rounded-lg text-sm bg-white">
-                                        <option value="Standard" <?= (isset($oldL[$idx]) && $oldL[$idx] == 'Standard') ? 'selected' : '' ?>>Standard</option>
-                                        <option value="Moderate" <?= (isset($oldL[$idx]) && $oldL[$idx] == 'Moderate') ? 'selected' : '' ?>>Moderate</option>
-                                    </select>
-                                </div>
-                                <button type="button" onclick="removeServiceRow(this)" class="text-red-400 p-2.5 hover:text-red-600">&times;</button>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <!-- FINAL SCHEDULE -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-900 p-6 rounded-2xl">
-                    <div>
-                        <label class="fixed-label text-slate-400 italic">Start Appointment</label>
-                        <div class="flex gap-2">
-                            <input type="date" name="appointment_date" value="<?= old('appointment_date') ?>" min="<?= date('Y-m-d') ?>" class="w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" required>
-                            <input type="time" name="appointment_time" value="<?= old('appointment_time') ?>" class="w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" required>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="fixed-label text-slate-400 italic">Expected End</label>
-                        <div class="flex gap-2">
-                            <input type="date" name="end_date" value="<?= old('end_date') ?>" min="<?= date('Y-m-d') ?>" class="w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" required>
-                            <input type="time" name="end_time" value="<?= old('end_time') ?>" class="w-full p-2.5 rounded-lg text-sm bg-slate-800 text-white border-slate-700" required>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-6 border-t bg-slate-50"><button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-blue-700 shadow-xl transition-all">Confirm Appointment</button></div>
-        </form>
-    </div>
 </div>
 
 <!-- VIEW MODAL -->
@@ -440,8 +294,44 @@
         barangay: "<?= old('barangay') ?>"
     };
 
+    function handleGenderLogic() {
+        const gender = $('select[name="gender"]').val();
+        const womenSection = $('#women_section');
+        const womenInputs = womenSection.find('input');
+
+        if (gender === 'Male') {
+            // Gawing "gray out" ang itsura
+            womenSection.css({
+                'opacity': '0.5',
+                'pointer-events': 'none',
+                'background-color': '#f1f5f9', // Slate-100 para magmukhang disabled
+                'border-color': '#e2e8f0'
+            });
+
+            // I-disable ang lahat ng radio buttons at i-set sa "No" (0)
+            womenInputs.prop('disabled', true);
+            womenSection.find('input[value="0"]').prop('checked', true);
+
+            // Palitan ang label color para halatang disabled
+            womenSection.find('label').removeClass('text-pink-700').addClass('text-slate-400');
+        } else {
+            // Ibalik sa normal kapag Female o walang pinili
+            womenSection.css({
+                'opacity': '1',
+                'pointer-events': 'auto',
+                'background-color': '', // Babalik sa pink-50 style mo
+                'border-color': ''
+            });
+
+            womenInputs.prop('disabled', false);
+            womenSection.find('label').first().addClass('text-pink-700').removeClass('text-slate-400');
+        }
+    }
+
+
     $(document).ready(function() {
-        loadRegions();
+
+        loadAddressLevel('region');
         $('#patient_search').select2({
             dropdownParent: $('#apptModal'),
             placeholder: 'Type name...',
@@ -496,6 +386,10 @@
             });
         }
         $('#tableSearch, #statusFilter, #dentistFilter, #dateFilter').on('input change', filterTable);
+        $('select[name="gender"]').on('change', function() {
+            handleGenderLogic();
+        });
+        handleGenderLogic();
     });
 
     // FUNCTIONS
@@ -504,8 +398,41 @@
         $('.appt-row').show();
     }
 
+
+    function goToStep(step) {
+        const s1 = document.getElementById('step1_container');
+        const s2 = document.getElementById('step2_container');
+        const d1 = document.getElementById('dot1');
+        const d2 = document.getElementById('dot2');
+        const title = document.getElementById('stepTitle');
+
+        if (step === 2) {
+            // Validation check for Step 1
+            const dentist = document.querySelector('select[name="dentist_id"]').value;
+            const apptDate = document.querySelector('input[name="appointment_date"]').value;
+
+            if (!dentist || !apptDate) {
+                alert("Pakisagutan muna ang Dentist at Schedule bago magpatuloy.");
+                return;
+            }
+
+            s1.classList.add('step-hidden');
+            s2.classList.remove('step-hidden');
+            d2.classList.add('active');
+            title.innerText = "Step 2: Medical History Record";
+            document.getElementById('apptModal').scrollTop = 0;
+        } else {
+            s1.classList.remove('step-hidden');
+            s2.classList.add('step-hidden');
+            d2.classList.remove('active');
+            title.innerText = "Step 1: Appointment Details";
+        }
+    }
+
+    // I-update ang closeModal function para mag-reset sa Step 1
     function closeModal() {
         document.getElementById('apptModal').classList.add('hidden');
+        goToStep(1); // Reset to first step
     }
 
     function toggleAccountType() {
@@ -543,61 +470,81 @@
     }
 
     // Address Loaders (Recursive)
-    async function loadRegions() {
-        const response = await fetch(`${BASE_URL}region.json`);
-        const data = await response.json();
-        const select = document.getElementById('reg_select');
-        data.forEach(r => {
-            let opt = new Option(r.region_name, r.region_code);
-            if (OLD_DATA.region && (r.region_name === OLD_DATA.region || r.region_code === OLD_DATA.region)) opt.selected = true;
-            select.add(opt);
-        });
-        if (select.value) loadProvinces(select.value);
-    }
-    async function loadProvinces(rc) {
-        const prov = document.getElementById('prov_select');
-        prov.disabled = false;
-        prov.innerHTML = '<option value="" selected disabled></option>';
-        const response = await fetch(`${BASE_URL}province.json`);
-        const data = await response.json();
-        data.filter(p => p.region_code === rc).forEach(p => {
-            let opt = new Option(p.province_name, p.province_code);
-            if (OLD_DATA.province && (p.province_name === OLD_DATA.province || p.province_code === OLD_DATA.province)) opt.selected = true;
-            prov.add(opt);
-        });
-        if (prov.value) loadCities(prov.value);
-    }
-    async function loadCities(pc) {
-        const city = document.getElementById('city_select');
-        city.disabled = false;
-        city.innerHTML = '<option value="" selected disabled></option>';
-        const response = await fetch(`${BASE_URL}city.json`);
-        const data = await response.json();
-        data.filter(c => c.province_code === pc).forEach(c => {
-            let opt = new Option(c.city_name, c.city_code);
-            if (OLD_DATA.city && (c.city_name === OLD_DATA.city || c.city_code === OLD_DATA.city)) opt.selected = true;
-            city.add(opt);
-        });
-        if (city.value) loadBarangays(city.value);
-    }
-    async function loadBarangays(cc) {
-        const brgy = document.getElementById('brgy_select');
-        brgy.disabled = false;
-        brgy.innerHTML = '<option value="" selected disabled></option>';
-        const response = await fetch(`${BASE_URL}barangay.json`);
-        const data = await response.json();
-        data.filter(b => b.city_code === cc).forEach(b => {
-            let opt = new Option(b.brgy_name, b.brgy_code);
-            if (OLD_DATA.barangay && (b.brgy_name === OLD_DATA.barangay || b.brgy_code === OLD_DATA.barangay)) opt.selected = true;
-            brgy.add(opt);
-        });
+    const ADDRESS_CONFIG = {
+        region: {
+            file: 'region.json',
+            filter: null,
+            display: 'region_name',
+            value: 'region_code',
+            next: 'province',
+            selectId: 'reg_select'
+        },
+        province: {
+            file: 'province.json',
+            filter: 'region_code',
+            display: 'province_name',
+            value: 'province_code',
+            next: 'city',
+            selectId: 'prov_select'
+        },
+        city: {
+            file: 'city.json',
+            filter: 'province_code',
+            display: 'city_name',
+            value: 'city_code',
+            next: 'barangay',
+            selectId: 'city_select'
+        },
+        barangay: {
+            file: 'barangay.json',
+            filter: 'city_code',
+            display: 'brgy_name',
+            value: 'brgy_code',
+            next: null,
+            selectId: 'brgy_select'
+        }
+    };
+
+    async function loadAddressLevel(level, parentValue = null) {
+        const cfg = ADDRESS_CONFIG[level];
+        const select = document.getElementById(cfg.selectId);
+
+        select.disabled = true;
+        select.innerHTML = '<option value="" selected disabled></option>';
+
+        try {
+            const response = await fetch(`${BASE_URL}${cfg.file}`);
+            const data = await response.json();
+
+            // Filter kung may parent value (e.g., provinces need region_code)
+            const filtered = cfg.filter ? data.filter(item => item[cfg.filter] == parentValue) : data;
+
+            filtered.forEach(item => {
+                const opt = new Option(item[cfg.display], item[cfg.value]);
+                // Check OLD_DATA para sa form persistence
+                if (OLD_DATA[level] && (item[cfg.display] === OLD_DATA[level] || item[cfg.value] === OLD_DATA[level])) {
+                    opt.selected = true;
+                }
+                select.add(opt);
+            });
+
+            select.disabled = false;
+
+            // Auto-load next level kung may selected value
+            if (select.value && cfg.next) {
+                loadAddressLevel(cfg.next, select.value);
+            }
+        } catch (error) {
+            console.error(`Error loading ${level}:`, error);
+        }
     }
 
     // View & Reschedule
     function viewAppointment(a) {
+        // Direct use na lang ng formatted data galing Controller
         document.getElementById('v_patient').innerText = a.patient_name;
-        document.getElementById('v_start').innerText = a.appointment_date + ' @ ' + a.appointment_time;
-        document.getElementById('v_end').innerText = a.end_date + ' @ ' + a.end_time;
+        document.getElementById('v_start').innerText = `${a.fmt_date} @ ${a.fmt_time}`;
+        document.getElementById('v_end').innerText = `${a.fmt_end_date} @ ${a.fmt_end}`;
         document.getElementById('v_dentist').innerText = 'Dr. ' + (a.dentist_name || 'N/A');
         document.getElementById('v_service').innerText = a.service_name;
         document.getElementById('v_status').innerText = a.status;

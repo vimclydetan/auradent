@@ -19,23 +19,23 @@
 
         <!-- Sa loob ng layouts/dashboard_layout.php -->
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <a href="<?= base_url('dashboard') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+            <a href="<?= base_url(session()->get('role') . '/dashboard') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
                 <i class="fas fa-home mr-3"></i> Dashboard
             </a>
 
             <!-- SIDEBAR (Snippet) -->
             <?php if (session()->get('role') == 'admin'): ?>
                 <a href="<?= base_url('admin/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-list mr-3"></i> Appointment List
+                    <i class="fas fa-list mr-3"></i> List of Appointments
                 </a>
 
-                <a href="<?= base_url('admin/appointments/calendar') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-calendar-alt mr-3"></i> Calendar View
+                <a href="<?= base_url('admin/calendar') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-alt mr-3"></i> Calendar
                 </a>
 
                 <!-- ITO ANG DAGDAG NA WALK-IN OPTION -->
                 <a href="<?= base_url('admin/walkin') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-walking mr-3"></i>Walk-in Patient
+                    <i class="fas fa-walking mr-3"></i>List of Walk-in Patients
                 </a>
 
                 <a href="<?= base_url('admin/dentists') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
@@ -43,13 +43,55 @@
                 </a>
 
                 <a href="<?= base_url('admin/patients') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
-                    <i class="fas fa-users mr-3"></i> Patients
+                    <i class="fas fa-users mr-3"></i> List of Patients
                 </a>
 
                 <a href="<?= base_url('admin/services') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
                     <i class="fas fa-tooth mr-3"></i> Services
                 </a>
+
+            <?php elseif (session()->get('role') == 'patient'): ?>
+                <a href="<?= base_url('patient/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-check mr-3"></i> My Appointments
+                </a>
+                <a href="<?= base_url('patient/profile') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-user mr-3"></i> My Profile
+                </a>
+
+            <?php elseif (session()->get('role') == 'dentist'): ?>
+                <a href="<?= base_url('dentist/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-check mr-3"></i> Appointments
+                </a>
+                <a href="<?= base_url('dentist/profile') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-user-md mr-3"></i> My Profile
+                </a>
+            <?php elseif (session()->get('role') == 'receptionist'): ?>
+                <a href="<?= base_url('receptionist/appointments') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-check mr-3"></i> Appointments
+                </a>
+
+                <a href="<?= base_url('receptionist/walkin') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-walking mr-3"></i> Walk-in Patient
+                </a>
+
+                <a href="<?= base_url('receptionist/patients') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-users mr-3"></i> Patients
+                </a>
+
+                <a href="<?= base_url('receptionist/billing') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-money-bill mr-3"></i> Create Bill
+                </a>
+
+                <a href="<?= base_url('receptionist/calendar') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-calendar-alt mr-3"></i> Calendar View
+                </a>
+
+                <a href="<?= base_url('receptionist/profile') ?>" class="flex items-center p-3 rounded-lg hover:bg-slate-800 transition">
+                    <i class="fas fa-user mr-3"></i> My Profile
+                </a>
             <?php endif; ?>
+
+
         </nav>
 
         <div class="p-4 border-t border-slate-800">

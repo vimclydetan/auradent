@@ -12,9 +12,13 @@ class DashboardController extends BaseController
         }
 
         $data['title'] = "Dashboard";
-        
+
         if ($session->get('role') == 'admin') {
             return view('admin/dashboard', $data);
+        } else if ($session->get('role') == 'receptionist') {
+            return view('receptionist/dashboard', $data);
+        } else if ($session->get('role') == 'dentist') {
+            return view('dentist/dashboard', $data);
         } else {
             return view('patient/dashboard', $data);
         }

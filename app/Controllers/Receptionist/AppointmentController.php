@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers\Receptionist;
 
 use App\Models\AppointmentModel;
 use App\Models\PatientModel;
 use App\Models\ServiceModel;
 use App\Models\DentistModel;
 use App\Models\MedicalConditionModel;
+use App\Controllers\BaseController;
 use CodeIgniter\Database\Exceptions\DatabaseException;
 
 class AppointmentController extends BaseController
@@ -55,7 +56,7 @@ class AppointmentController extends BaseController
             'medical_conditions' => $mcModel->where('is_active', 1)->orderBy('category', 'ASC')->findAll()
         ];
 
-        return view('admin/appointments/index', $data);
+        return view('receptionist/appointments/index', $data);
     }
 
 
@@ -64,18 +65,28 @@ class AppointmentController extends BaseController
      */
     public function searchPatients()
     {
-        $search = $this->request->getGet('q');
-        $patientModel = new \App\Models\PatientModel();
-        $patients = $patientModel->select('id, first_name, last_name, middle_name')
-            ->groupStart()
-            ->like('first_name', $search)->orLike('last_name', $search)
-            ->groupEnd()->limit(10)->findAll();
+        $term = $this->request->getGet('term');
 
-        $result = [];
-        foreach ($patients as $p) {
-            $result[] = ['id' => $p['id'], 'text' => $p['last_name'] . ', ' . $p['first_name']];
+        // I-check kung may laman ang search term para iwas error
+        if (empty($term)) {
+            return $this->response->setJSON([]);
         }
-        return $this->response->setJSON($result);
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('patients');
+
+        // Ang pangalawang parameter na 'false' ay para hindi i-escape ng CI4 yung CONCAT
+        $builder->select("id, CONCAT(first_name, ' ', last_name) as name, patient_code", false);
+
+        $builder->groupStart()
+            ->like('first_name', $term)
+            ->orLike('last_name', $term)
+            ->orLike('patient_code', $term)
+            ->groupEnd();
+
+        $results = $builder->limit(10)->get()->getResultArray();
+
+        return $this->response->setJSON($results);
     }
 
     /**
@@ -156,6 +167,8 @@ class AppointmentController extends BaseController
 
             // A. Create New Patient Account if needed
             if ($accountType === 'new') {
+                $patientModel = new \App\Models\PatientModel();
+                $generatedCode = $patientModel->generatePatientCode();
                 $userData = [
                     'username'  => $this->request->getPost('username'),
                     'email'     => $this->request->getPost('email'),
@@ -168,6 +181,7 @@ class AppointmentController extends BaseController
 
                 $patientData = [
                     'user_id'        => $userId,
+                    'patient_code'   => $generatedCode,
                     'first_name'     => $this->request->getPost('first_name'),
                     'middle_name'    => $this->request->getPost('middle_name'),
                     'last_name'      => $this->request->getPost('last_name'),
@@ -260,7 +274,7 @@ class AppointmentController extends BaseController
                 return redirect()->back()->withInput()->with('error', 'Transaction Failed.');
             } else {
                 $db->transCommit();
-                return redirect()->to('/admin/appointments')->with('success', 'Appointment and Medical Record saved!');
+                return redirect()->to(base_url('receptionist/appointments'))->with('success', 'Appointment and Medical Record saved!');
             }
         } catch (\Exception $e) {
             $db->transRollback();
@@ -308,7 +322,7 @@ class AppointmentController extends BaseController
         ];
 
         if ($model->update($id, $data)) {
-            return redirect()->to('/admin/appointments')->with('success', 'Appointment rescheduled successfully!');
+            return redirect()->to(base_url('receptionist/appointments'))->with('success', 'Appointment rescheduled successfully!');
         }
         return redirect()->back()->with('error', 'Update failed.');
     }
@@ -320,7 +334,6 @@ class AppointmentController extends BaseController
     {
         $model = new AppointmentModel();
         $model->update($id, ['status' => $status]);
-        return redirect()->to('/admin/appointments')->with('success', 'Status updated.');
+        return redirect()->to(base_url('receptionist/appointments'))->with('success', 'Status updated.');
     }
-
 }

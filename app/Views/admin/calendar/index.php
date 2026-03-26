@@ -122,7 +122,7 @@
                 right: 'dayGridMonth,timeGridWeek'
             },
             height: 750,
-            events: '<?= base_url('admin/appointments/getCalendarEvents') ?>',
+            events: '<?= base_url('admin/calendar/events') ?>',
             
             // CUSTOM EVENT DISPLAY
             eventContent: function(arg) {
