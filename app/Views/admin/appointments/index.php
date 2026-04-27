@@ -1,11 +1,8 @@
 <?= $this->extend('layouts/dashboard_layout') ?>
 
 <?= $this->section('content') ?>
-<!-- SELECT2 & JQUERY -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
+<meta name="csrf-token" content="<?= csrf_hash() ?>">
+<meta name="csrf-name" content="<?= csrf_token() ?>">
 <style>
     .floating-label-group {
         position: relative;
@@ -137,18 +134,34 @@
     .step-dot.active {
         background: #2563eb;
     }
+
+    .slot-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .slot-btn:active:not(:disabled) {
+        transform: translateY(0);
+    }
 </style>
 
 <!-- ALERTS -->
 <?php if (session()->getFlashdata('success')): ?>
-    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg border-l-4 border-green-500 font-bold text-sm"><?= session()->getFlashdata('success') ?></div>
+    <div role="alert" class="mb-4 p-4 bg-green-50 text-green-800 rounded-lg border border-green-200 shadow-sm flex items-start gap-3">
+        <!-- Icon -->
+        <svg class="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <!-- Message -->
+        <span class="text-sm font-medium"><?= session()->getFlashdata('success') ?></span>
+    </div>
 <?php endif; ?>
 
 <div class="flex justify-between items-center mb-6">
-    <h3 class="text-2xl font-bold text-slate-800">📅 Appointments</h3>
-    <button onclick="document.getElementById('apptModal').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow-lg font-bold transition-all active:scale-95">
-        <i class="fas fa-plus mr-2"></i> Book Appointment
-    </button>
+    <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+        <i class="fas fa-calendar-check text-blue-600"></i>
+        Appointments
+    </h3>
 </div>
 
 <!-- FILTERS -->
@@ -185,6 +198,33 @@
         <button onclick="resetFilters()" class="w-full text-xs font-bold text-red-500 hover:bg-red-50 py-2.5 rounded-lg border border-red-200 transition-all uppercase">Reset</button>
     </div>
 </div>
+<!-- QUICK TIMEFRAME TABS -->
+<div class="flex flex-wrap gap-2 mb-4">
+    <?php
+    $tabConfig = [
+        'today'    => ['label' => 'Today', 'count' => $counts['today']],
+        'tomorrow' => ['label' => 'Tomorrow', 'count' => $counts['tomorrow']],
+        'upcoming' => ['label' => 'Upcoming', 'count' => $counts['upcoming']],
+        'all'      => ['label' => 'All Appointments', 'count' => null]
+    ];
+
+    foreach ($tabConfig as $key => $cfg):
+        $isActive = ($currentTab === $key);
+        $btnClass = $isActive
+            ? 'bg-blue-600 text-white shadow-md border-blue-600'
+            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+    ?>
+        <a href="?tab=<?= $key ?>"
+            class="px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all border flex items-center gap-2 <?= $btnClass ?>">
+            <?= $cfg['label'] ?>
+            <?php if ($cfg['count'] !== null): ?>
+                <span class="<?= $isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500' ?> px-1.5 py-0.5 rounded text-[10px]">
+                    <?= $cfg['count'] ?>
+                </span>
+            <?php endif; ?>
+        </a>
+    <?php endforeach; ?>
+</div>
 
 <!-- TABLE -->
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -200,29 +240,105 @@
             </tr>
         </thead>
         <tbody id="appointmentTable" class="text-sm divide-y divide-slate-100">
-            <?php foreach ($appointments as $a): ?>
-                <tr class="appt-row hover:bg-slate-50/50"
-                    data-status="<?= $a['status'] ?>"
-                    data-dentist="<?= $a['dentist_id'] ?>"
-                    data-date="<?= $a['appointment_date'] ?>">
-                    <td class="p-4 font-bold text-slate-700"><?= esc($a['patient_name']) ?></td>
-                    <td class="p-4 font-medium text-blue-600"> <?= esc($a['dentist_name'] ?: 'N/A') ?></td>
-                    <td class="p-4">
-                        <div class="text-xs font-bold text-slate-700"><?= $a['fmt_date'] ?? date('M d, Y', strtotime($a['appointment_date'])) ?></div>
-                        <div class="text-[10px] text-blue-600 italic"><?= $a['fmt_time'] ?? date('h:i A', strtotime($a['appointment_time'])) ?> - <?= $a['fmt_end'] ?? date('h:i A', strtotime($a['end_time'])) ?></div>
-                    </td>
-                    <td class="p-4 font-medium text-slate-600"><?= esc($a['service_name']) ?></td>
-                    <td class="p-4 text-center">
-                        <?php $c = ['Pending' => 'amber', 'Confirmed' => 'blue', 'Completed' => 'green', 'Cancelled' => 'red'][$a['status']]; ?>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-<?= $c ?>-100 text-<?= $c ?>-700"><?= $a['status'] ?></span>
-                    </td>
-                    <td class="p-4 text-center">
-                        <div class="flex justify-center gap-2">
-                            <button onclick='viewAppointment(<?= json_encode($a) ?>)' class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase hover:bg-slate-800 hover:text-white transition-all">View</button>
+            <?php if (empty($appointments)): ?>
+                <tr>
+                    <td colspan="6" class="p-12 text-center">
+                        <div class="flex flex-col items-center gap-4 text-slate-400">
+                            <!-- Icon with subtle animation -->
+                            <div class="p-4 bg-slate-50 rounded-full">
+                                <i class="fas fa-calendar-check text-4xl text-slate-300"></i>
+                            </div>
+
+                            <!-- Main Message (Dynamic based on tab) -->
+                            <p class="font-semibold text-slate-600 text-base">
+                                <?php
+                                $emptyMessages = [
+                                    'today'    => 'No appointments scheduled for today.',
+                                    'tomorrow' => 'No appointments scheduled for tomorrow.',
+                                    'upcoming' => 'No upcoming appointments found.',
+                                    'all'      => 'No appointments found.'
+                                ];
+                                echo $emptyMessages[$currentTab] ?? 'No appointments found.';
+                                ?>
+                            </p>
+
+                            <!-- Helper Text -->
+                            <p class="text-[10px] text-slate-400 max-w-xs text-center leading-relaxed">
+                                <?php
+                                $helperMessages = [
+                                    'today'    => 'Appointments will appear here once they are booked and assigned to your schedule.',
+                                    'tomorrow' => 'Check back later or book a new appointment to fill your schedule.',
+                                    'upcoming' => 'Try adjusting your filters or book a new appointment to get started.',
+                                    'all'      => 'Try adjusting your filters or create a new appointment to get started.'
+                                ];
+                                echo $helperMessages[$currentTab] ?? 'Try adjusting your filters or create a new appointment.';
+                                ?>
+                            </p>
                         </div>
                     </td>
                 </tr>
-            <?php endforeach; ?>
+            <?php else: ?>
+                <?php foreach ($appointments as $a): ?>
+                    <tr class="appt-row hover:bg-slate-50/50"
+                        data-status="<?= $a['status'] ?>"
+                        data-dentist="<?= $a['dentist_id'] ?>"
+                        data-date="<?= $a['appointment_date'] ?>">
+                        <td class="p-4">
+                            <div class="flex flex-col">
+                                <!-- Patient Name -->
+                                <span class="font-bold text-slate-700 text-sm">
+                                    <?= esc($a['patient_name']) ?>
+                                </span>
+
+                                <!-- Patient Code (shows only if available) -->
+                                <?php if (!empty($a['patient_code'])): ?>
+                                    <span class="text-[10px] font-mono font-semibold text-white bg-blue-600 px-2 py-0.5 rounded mt-1 w-fit">
+                                        <?= esc($a['patient_code']) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        <td class="p-4 font-medium text-blue-600"> <?= esc($a['dentist_name'] ?: 'N/A') ?></td>
+                        <td class="p-4">
+                            <?php
+                            $apptDate = $a['appointment_date'];
+                            $today = date('Y-m-d');
+                            $tomorrow = date('Y-m-d', strtotime('+1 day'));
+
+                            $badge = "";
+                            if ($apptDate == $today) {
+                                $badge = '<span class="bg-red-100 text-red-600 text-[9px] px-1.5 py-0.5 rounded-full font-black animate-pulse mr-1">TODAY</span>';
+                            } elseif ($apptDate == $tomorrow) {
+                                $badge = '<span class="bg-orange-100 text-orange-600 text-[9px] px-1.5 py-0.5 rounded-full font-black mr-1">TOMORROW</span>';
+                            }
+                            ?>
+                            <div class="flex items-center">
+                                <?= $badge ?>
+                                <div class="text-xs font-bold text-slate-700"><?= $a['fmt_date'] ?? date('M d, Y', strtotime($a['appointment_date'])) ?></div>
+                            </div>
+                            <div class="text-[10px] text-blue-600 italic">
+                                <?= $a['fmt_time'] ?? date('h:i A', strtotime($a['appointment_time'])) ?> - <?= $a['fmt_end'] ?? date('h:i A', strtotime($a['end_time'])) ?>
+                            </div>
+                        </td>
+                        <td class="p-4 font-medium text-slate-600"><?= esc($a['service_name']) ?></td>
+                        <td class="p-4 text-center">
+                            <?php $c = ['Pending' => 'amber', 'Confirmed' => 'blue', 'Completed' => 'green', 'Cancelled' => 'red'][$a['status']]; ?>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-<?= $c ?>-100 text-<?= $c ?>-700"><?= $a['status'] ?></span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex justify-center gap-1">
+                                <!-- VIEW HISTORY (Compact) -->
+                                <a href="<?= base_url('admin/appointments/history/' . $a['patient_id']) ?>"
+                                    target="_blank"
+                                    title="View History"
+                                    class="bg-slate-800 text-white px-2 py-1 rounded-md font-bold text-[9px] uppercase hover:bg-black transition-all flex items-center gap-1">
+                                    <i class="fas fa-history text-[8px]"></i> History
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </tbody>
     </table>
 </div>
@@ -273,7 +389,7 @@
         <div class="p-4 border-b flex justify-between items-center bg-slate-50">
             <h4 class="font-bold text-slate-800 uppercase text-sm">Reschedule Booking</h4><button onclick="closeReschedModal()" class="text-slate-400 text-2xl hover:text-slate-600">&times;</button>
         </div>
-        <form action="<?= base_url('admin/appointments/reschedule') ?>" method="POST" class="p-6 space-y-4"><?= csrf_field() ?><input type="hidden" name="appointment_id" id="resched_id">
+        <form action="<?= base_url('receptionist/appointments/reschedule') ?>" method="POST" class="p-6 space-y-4"><?= csrf_field() ?><input type="hidden" name="appointment_id" id="resched_id">
             <div class="space-y-1"><label class="fixed-label text-indigo-600">Change Dentist</label><select name="dentist_id" id="resched_dentist" class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold bg-white"><?php foreach ($dentists as $d): ?><option value="<?= $d['id'] ?>">Dr. <?= $d['first_name'] ?> <?= $d['last_name'] ?></option><?php endforeach; ?></select></div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">New Start Date</label><input type="date" name="appointment_date" id="resched_date" min="<?= date('Y-m-d') ?>" class="w-full p-2.5 border border-slate-200 rounded-lg text-sm" required></div>
@@ -286,48 +402,6 @@
 </div>
 
 <script>
-    const BASE_URL = "<?= base_url('data/ph-addresses/') ?>";
-    const OLD_DATA = {
-        region: "<?= old('region') ?>",
-        province: "<?= old('province') ?>",
-        city: "<?= old('city') ?>",
-        barangay: "<?= old('barangay') ?>"
-    };
-
-    function handleGenderLogic() {
-        const gender = $('select[name="gender"]').val();
-        const womenSection = $('#women_section');
-        const womenInputs = womenSection.find('input');
-
-        if (gender === 'Male') {
-            // Gawing "gray out" ang itsura
-            womenSection.css({
-                'opacity': '0.5',
-                'pointer-events': 'none',
-                'background-color': '#f1f5f9', // Slate-100 para magmukhang disabled
-                'border-color': '#e2e8f0'
-            });
-
-            // I-disable ang lahat ng radio buttons at i-set sa "No" (0)
-            womenInputs.prop('disabled', true);
-            womenSection.find('input[value="0"]').prop('checked', true);
-
-            // Palitan ang label color para halatang disabled
-            womenSection.find('label').removeClass('text-pink-700').addClass('text-slate-400');
-        } else {
-            // Ibalik sa normal kapag Female o walang pinili
-            womenSection.css({
-                'opacity': '1',
-                'pointer-events': 'auto',
-                'background-color': '', // Babalik sa pink-50 style mo
-                'border-color': ''
-            });
-
-            womenInputs.prop('disabled', false);
-            womenSection.find('label').first().addClass('text-pink-700').removeClass('text-slate-400');
-        }
-    }
-
 
     $(document).ready(function() {
 

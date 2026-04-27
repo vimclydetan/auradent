@@ -28,15 +28,14 @@ class ServiceController extends BaseController
         ];
 
         if ($hasLevels) {
-            $data['price_simple']   = $this->request->getPost('price_simple');
-            $data['price_moderate'] = $this->request->getPost('price_moderate');
-            $data['price_severe']   = $this->request->getPost('price_severe');
-            $data['price']          = 0; // Or standard simple price
+            $adjustments = [
+                'Simple'   => (int)($this->request->getPost('duration_simple') ?? 0),
+                'Moderate' => (int)($this->request->getPost('duration_moderate') ?? 0),
+                'Severe'   => (int)($this->request->getPost('duration_severe') ?? 0),
+            ];
+            $data['duration_adjustments'] = json_encode($adjustments, JSON_UNESCAPED_UNICODE);
         } else {
-            $data['price']          = $this->request->getPost('price');
-            $data['price_simple']   = null;
-            $data['price_moderate'] = null;
-            $data['price_severe']   = null;
+            $data['duration_adjustments'] = null;
         }
 
         $model->save($data);
@@ -51,32 +50,31 @@ class ServiceController extends BaseController
     }
 
     public function update($id)
-{
-    $model = new ServiceModel();
-    
-    $hasLevels = $this->request->getPost('has_levels') == '1' ? 1 : 0;
+    {
+        $model = new ServiceModel();
 
-    $data = [
-        'service_name' => $this->request->getPost('service_name'),
-        'description'  => $this->request->getPost('description'),
-        'status'       => $this->request->getPost('status'),
-        'has_levels'   => $hasLevels,
-    ];
+        $hasLevels = $this->request->getPost('has_levels') == '1' ? 1 : 0;
 
-    if ($hasLevels) {
-        $data['price_simple']   = $this->request->getPost('price_simple');
-        $data['price_moderate'] = $this->request->getPost('price_moderate');
-        $data['price_severe']   = $this->request->getPost('price_severe');
-        $data['price']          = 0;
-    } else {
-        $data['price']          = $this->request->getPost('price');
-        $data['price_simple']   = null;
-        $data['price_moderate'] = null;
-        $data['price_severe']   = null;
+        $data = [
+            'service_name' => $this->request->getPost('service_name'),
+            'description'  => $this->request->getPost('description'),
+            'status'       => $this->request->getPost('status'),
+            'has_levels'   => $hasLevels,
+        ];
+
+        if ($hasLevels) {
+            $adjustments = [
+                'Simple'   => (int)($this->request->getPost('duration_simple') ?? 0),
+                'Moderate' => (int)($this->request->getPost('duration_moderate') ?? 0),
+                'Severe'   => (int)($this->request->getPost('duration_severe') ?? 0),
+            ];
+            $data['duration_adjustments'] = json_encode($adjustments, JSON_UNESCAPED_UNICODE);
+        } else {
+            $data['duration_adjustments'] = null;
+        }
+
+        $model->update($id, $data);
+
+        return redirect()->to('/admin/services')->with('success', 'Service updated successfully!');
     }
-
-    $model->update($id, $data);
-
-    return redirect()->to('/admin/services')->with('success', 'Service updated successfully!');
-}
 }

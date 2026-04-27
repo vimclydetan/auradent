@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS below */
+.glass-nav {
+    @apply bg-white/80 backdrop-blur-md border-b border-slate-100/50;
+}

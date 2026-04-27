@@ -5,95 +5,142 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-$routes->get('/', 'AuthController::index');
-$routes->post('/login', 'AuthController::login');
-$routes->get('/logout', 'AuthController::logout');
 
-// Dashboard (Dito magse-switch ang view depende sa role)
+$routes->setDefaultNamespace('App\Controllers');
+// PUBLIC ROUTES
+$routes->get('/', 'Home::index');
 
+$routes->post('login', 'AuthController::login');
+$routes->get('logout', 'AuthController::logout');
+$routes->post('register', 'AuthController::register');
+$routes->get('reset-admin', 'AuthController::reset_admin');
 
-// Admin Routes
-$routes->group('admin', ['filter' => 'authCheck:admin'], function ($routes) {
-    $routes->get('dashboard', 'DashboardController::index');
-    // Patients
-    $routes->get('patients', 'AdminController::patients');
-    $routes->post('save-patient', 'AdminController::save_patient');
+// Email link: /appointments/confirm/{id}/{token}
+$routes->get('appointments/confirm/(:num)/(:segment)', 'Patient\AppointmentConfirmationController::confirm/$1/$2');
 
-    // Services
-    $routes->get('services', 'ServiceController::index');
-    $routes->post('services/store', 'ServiceController::store');
+// Process form submission
+$routes->post('appointments/confirm/process', 'Patient\AppointmentConfirmationController::processConfirmation');
 
-    // ITO ANG IMPORTANTE:
-    // Huwag nang lagyan ng 'admin/' sa unahan dahil nasa loob na ng group
-    $routes->post('services/update/(:num)', 'ServiceController::update/$1');
-
-    $routes->get('services/delete/(:num)', 'ServiceController::delete/$1');
-
-    $routes->get('appointments/searchPatients', 'AppointmentController::searchPatients');
-
-    $routes->get('appointments', 'AppointmentController::index');
-    $routes->post('appointments/store', 'AppointmentController::store');
-    $routes->get('appointments/status/(:num)/(:segment)', 'AppointmentController::updateStatus/$1/$2');
-    $routes->post('appointments/reschedule', 'AppointmentController::reschedule');
-    $routes->get('calendar', 'Admin\CalendarController::index');
-    $routes->get('calendar/events', 'Admin\CalendarController::getEvents');
-
-    // DENTIST ROUTES
-    $routes->get('dentists', 'Admin\DentistController::index');
-    $routes->post('dentists/store', 'Admin\DentistController::store');
-
-    // TANGGALIN ang 'admin/' dito dahil nasa loob na ng group:
-    $routes->get('dentists/view/(:num)', 'Admin\DentistController::view/$1');
-
-    // Para sa Edit at Delete sa susunod:
-    $routes->get('dentists/edit/(:num)', 'Admin\DentistController::edit/$1');
-    $routes->get('dentists/delete/(:num)', 'Admin\DentistController::delete/$1');
-    $routes->get('admin/patients/search', 'Admin\Patients::search', ['filter' => 'auth']);
-});
-
-$routes->group('patient', ['namespace' => 'App\Controllers\Patient', 'filter' => 'authCheck:patient'], function ($routes) {
-    $routes->get('dashboard', 'DashboardController::index');
-
-    $routes->get('appointments', 'AppointmentController::index');
-    $routes->post('appointments/store', 'AppointmentController::store');
-    $routes->post('appointments/reschedule', 'AppointmentControllerF::reschedule');
-    $routes->get('appointments/status/(:num)/(:any)', 'AppointmentController::status/$1/$2');
-
-
-    // Sa loob ng iyong patient group o kahit sa labas
-    $routes->post('save-medical-history', 'DashboardController::saveMedicalHistory');
-});
-
-// --- RECEPTIONIST ROUTES ---
-$routes->group('receptionist', ['namespace' => 'App\Controllers\Receptionist', 'filter' => 'authCheck:receptionist'], function ($routes) {
+// ==============================
+// ADMIN ROUTES
+// ==============================
+$routes->group('admin', [
+    'namespace' => 'App\Controllers\Admin',
+    'filter' => 'authCheck:admin'
+], function ($routes) {
 
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('dashboard/stats', 'DashboardController::getStats');
+    $routes->get('dashboard/appointments', 'DashboardController::getAppointmentsByDate');
+    $routes->get('dashboard/today', 'DashboardController::getTodaySchedule');
 
-    // Appointment Management Group
+    // Patients
+    $routes->group('patient', function ($routes) {
+        $routes->get('/', 'PatientsController::index');
+        $routes->post('store', 'PatientsController::store');
+        $routes->get('search', 'PatientsController::search');
+    });
+
+    // Services
+    $routes->group('services', function ($routes) {
+        $routes->get('/', 'ServiceController::index');
+        $routes->post('store', 'ServiceController::store');
+        $routes->post('update/(:num)', 'ServiceController::update/$1');
+        $routes->get('delete/(:num)', 'ServiceController::delete/$1');
+    });
+
+    // Appointments
     $routes->group('appointments', function ($routes) {
-        // Main List: /receptionist/appointments
         $routes->get('/', 'AppointmentController::index');
-
-        // AJAX Patient Search: /receptionist/appointments/searchPatients
         $routes->get('searchPatients', 'AppointmentController::searchPatients');
+        $routes->get('status/(:num)/(:segment)', 'AppointmentController::updateStatus/$1/$2');
+        $routes->get('view/(:num)', 'AppointmentController::view/$1');
+        $routes->get('history/(:num)', 'AppointmentController::patientHistory/$1');
+    });
 
-        // Save New Appointment: /receptionist/appointments/store
+    // Calendar
+    $routes->group('calendar', function ($routes) {
+        $routes->get('/', 'CalendarController::index');
+        $routes->get('events', 'CalendarController::getEvents');
+    });
+
+    // Dentists
+    $routes->group('dentists', function ($routes) {
+        $routes->get('/', 'DentistController::index');
+        $routes->post('store', 'DentistController::store');
+        $routes->get('view/(:num)', 'DentistController::view/$1');
+        $routes->get('edit/(:num)', 'DentistController::edit/$1');
+        $routes->post('update/(:num)', 'DentistController::update/$1');
+        $routes->get('activate/(:num)', 'DentistController::activate/$1');
+        $routes->get('deactivate/(:num)', 'DentistController::deactivate/$1');
+    });
+    $routes->get('user-logs', 'UserLogsController::index');
+    $routes->get('user-logs/export', 'UserLogsController::export');
+
+    $routes->post('user-logs/verify-export', 'UserLogsController::verifyExportPassword');
+});
+
+
+// ==============================
+// PATIENT ROUTES
+// ==============================
+$routes->group('patient', [
+    'namespace' => 'App\Controllers\Patient',
+    'filter' => 'authCheck:patient'
+], function ($routes) {
+
+    $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('appointments', 'AppointmentController::index');
+    $routes->post('save-personal-info', 'DashboardController::savePersonalInfo');
+    $routes->post('save-medical-history', 'DashboardController::saveMedicalHistory');
+
+    $routes->group('appointments', function ($routes) {
+        $routes->get('/', 'AppointmentController::index');
         $routes->post('store', 'AppointmentController::store');
+        $routes->post('reschedule', 'AppointmentController::reschedule');
+        $routes->get('status/(:num)/(:segment)', 'AppointmentController::status/$1/$2');
+        $routes->get('check-availability', 'AppointmentController::checkAvailability');
+        $routes->get('view/(:num)', 'AppointmentController::view/$1');
+        $routes->post('request-cancellation/(:num)', 'AppointmentController::requestCancellation/$1');
+    });
+});
 
-        // Reschedule Appointment: /receptionist/appointments/reschedule
+
+// ==============================
+// RECEPTIONIST ROUTES
+// ==============================
+$routes->group('receptionist', [
+    'namespace' => 'App\Controllers\Receptionist',
+    'filter' => 'authCheck:receptionist'
+], function ($routes) {
+
+    $routes->get('dashboard', 'DashboardController::index');
+
+    $routes->group('appointments', function ($routes) {
+        $routes->get('/', 'AppointmentController::index');
+        $routes->get('searchPatients', 'AppointmentController::searchPatients');
+        $routes->post('store', 'AppointmentController::store');
         $routes->post('reschedule', 'AppointmentController::reschedule');
 
-        // Update Status: /receptionist/appointments/status/9/Confirmed
-        // (:num) para sa ID, (:segment) para sa status string
+        // ✅ EXISTING: GET for link clicks (browser navigation)
         $routes->get('status/(:num)/(:segment)', 'AppointmentController::updateStatus/$1/$2');
+
+        // ✅ ADD THIS: POST for AJAX calls (JavaScript fetch)
+        $routes->post('update-status/(:num)/(:segment)', 'AppointmentController::updateStatus/$1/$2');
+
+        $routes->get('history/(:num)', 'AppointmentController::patientHistory/$1');
+        $routes->get('checkAvailability', 'AppointmentController::checkAvailability');
+        $routes->post('cancel', 'AppointmentController::cancel');
+        $routes->post('reject', 'AppointmentController::reject');
+        $routes->post('deny-cancellation', 'AppointmentController::denyCancellation');
+        $routes->post('handle-cancellation-request', 'AppointmentController::handleCancellationRequest');
+        $routes->post('mark-no-show/(:num)', 'AppointmentController::updateStatus/$1/no-show');
+        $routes->get('rebooking-fee-preview','AppointmentController::getRebookingFeePreview');
     });
 
     $routes->group('walkin', function ($routes) {
-        // Main Form: auradent.com/receptionist/walkin
         $routes->get('/', 'WalkinController::index');
-
-        // Process Save: auradent.com/receptionist/walkin/store
         $routes->post('store', 'WalkinController::store');
     });
 
@@ -103,18 +150,47 @@ $routes->group('receptionist', ['namespace' => 'App\Controllers\Receptionist', '
         $routes->get('history/(:num)', 'PatientsController::history/$1');
         $routes->get('edit/(:num)', 'PatientsController::edit/$1');
     });
-    $routes->group('billing', function ($routes) {
-        // Main Form: /receptionist/billing
-        $routes->get('/', 'BillingController::index');
 
-        // Process Save: /receptionist/billing/save
+    $routes->group('billing', function ($routes) {
+        $routes->get('/', 'BillingController::index');
         $routes->post('save', 'BillingController::save');
-        $routes->get('history/(:num)', 'BillingController::history/$1'); // Eto yung bago
-        // Optional: Kung gusto mong sa BillingController din dadaan ang search
-        $routes->get('searchPatients', '/AppointmentController::searchPatients');
-        $routes->get('getActiveDetails/(:num)', 'BillingController::getActiveDetails/$1');
+        $routes->get('history/(:num)', 'BillingController::history/$1');
+        $routes->get('searchPatients', 'AppointmentController::searchPatients');
+        $routes->get('details/(:num)', 'BillingController::getActiveDetails/$1');
+    });
+
+    $routes->group('calendar', function ($routes) {
+        $routes->get('/', 'CalendarController::index');
+        $routes->get('events', 'CalendarController::getEvents');
     });
 });
 
 
-$routes->get('reset-admin', 'AuthController::reset_admin');
+// ==============================
+// DENTIST ROUTES (NEW)
+// ==============================
+$routes->group('dentist', [
+    'namespace' => 'App\Controllers\Dentist',
+    'filter' => 'authCheck:dentist'
+], function ($routes) {
+
+    $routes->get('dashboard', 'DashboardController::index');
+
+    $routes->group('appointments', function ($routes) {
+        $routes->get('/', 'AppointmentController::index');
+        $routes->get('get-data/(:num)', 'AppointmentController::getAppointmentData/$1');
+        $routes->post('finalize', 'AppointmentController::finalizeTreatment');
+        $routes->post('save-chart', 'AppointmentController::saveChart');
+    });
+
+    $routes->group('patient', function ($routes) {
+        $routes->get('/', 'PatientsController::index');
+        $routes->get('view/(:num)', 'PatientsController::view/$1');
+        $routes->get('medical_history/(:num)', 'PatientController::viewHistory/$1');
+    });
+
+    $routes->group('calendar', function ($routes) {
+        $routes->get('/', 'CalendarController::index');
+        $routes->get('events', 'CalendarController::getEvents');
+    });
+});

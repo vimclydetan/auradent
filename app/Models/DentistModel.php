@@ -15,6 +15,8 @@ class DentistModel extends Model
         'middle_name',
         'last_name',
         'extension_name',
+        'dentist_type', 
+        'status',
         'gender',
         'birthdate',
         'house_number',
@@ -22,6 +24,7 @@ class DentistModel extends Model
         'barangay',
         'city',
         'province',
+        'region',
         'contact_number'
     ];
     protected $useTimestamps = true;

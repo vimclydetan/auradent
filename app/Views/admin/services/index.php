@@ -66,6 +66,7 @@
                         <?php else: ?>
                             <div class="bg-blue-50 p-2 rounded w-fit px-4 border border-blue-100">
                                 <span class="text-blue-700 font-bold text-base">₱<?= number_format($s['price'], 2) ?></span>
+                                <span class="block text-[9px] text-slate-400"><?= $s['estimated_duration_minutes'] ?> mins</span>
                             </div>
                         <?php endif; ?>
                     </td>
@@ -76,6 +77,7 @@
                     </td>
                     <td class="p-4 text-right space-x-1">
                         <!-- DYNAMIC EDIT BUTTON -->
+                        <!-- Sa edit button, dagdagan ng duration data attributes -->
                         <button
                             type="button"
                             onclick="openEditModal(this)"
@@ -88,7 +90,12 @@
                             data-pmoderate="<?= $s['price_moderate'] ?>"
                             data-psevere="<?= $s['price_severe'] ?>"
                             data-status="<?= $s['status'] ?>"
-                            class="text-slate-400 hover:text-blue-600 p-2 transition-colors" title="Edit Service">
+                            data-duration="<?= $s['estimated_duration_minutes'] ?>"
+                            data-dursimple="<?= json_decode($s['duration_adjustments'], true)['Simple'] ?? 0 ?>"
+                            data-durmoderate="<?= json_decode($s['duration_adjustments'], true)['Moderate'] ?? 0 ?>"
+                            data-dursevere="<?= json_decode($s['duration_adjustments'], true)['Severe'] ?? 0 ?>"
+                            class="text-slate-400 hover:text-blue-600 p-2 transition-colors"
+                            title="Edit Service">
                             <i class="fas fa-edit"></i>
                         </button>
 
@@ -112,7 +119,7 @@
             <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
         </div>
         <form id="serviceForm" action="<?= base_url('admin/services/store') ?>" method="POST" class="p-6 space-y-4">
-            
+
             <input type="hidden" name="id" id="service_id">
 
             <div>
@@ -132,6 +139,7 @@
             <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
                 <div class="flex items-center justify-between">
                     <label for="has_levels" class="text-sm font-bold text-blue-800 uppercase italic cursor-pointer">Multiple Pricing Levels?</label>
+                    <input type="hidden" name="has_levels" value="0">
                     <input type="checkbox" id="has_levels" name="has_levels" value="1" onchange="toggleLevels(this)" class="w-5 h-5 text-blue-600 rounded">
                 </div>
             </div>
@@ -161,6 +169,56 @@
                 </div>
             </div>
 
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">
+                    <i class="fas fa-clock text-blue-500 mr-1"></i>
+                    Estimated Duration (minutes)
+                </label>
+                <input type="number"
+                    name="estimated_duration_minutes"
+                    id="estimated_duration"
+                    min="5"
+                    max="480"
+                    value="30"
+                    class="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-[10px] text-slate-400 mt-1">Base duration for this service. Used for auto end-time calculation.</p>
+            </div>
+
+            <!-- DURATION ADJUSTMENTS (Shows when has_levels is checked) -->
+            <div id="durationAdjustmentsDiv" class="hidden grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                <div>
+                    <label class="block text-[10px] font-bold text-green-600 uppercase">Simple (+/- mins)</label>
+                    <input type="number"
+                        name="duration_simple"
+                        id="duration_simple"
+                        value="0"
+                        class="w-full p-2 border border-slate-200 rounded-lg text-center"
+                        placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-orange-600 uppercase">Moderate (+/- mins)</label>
+                    <input type="number"
+                        name="duration_moderate"
+                        id="duration_moderate"
+                        value="0"
+                        class="w-full p-2 border border-slate-200 rounded-lg text-center"
+                        placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-red-600 uppercase">Severe (+/- mins)</label>
+                    <input type="number"
+                        name="duration_severe"
+                        id="duration_severe"
+                        value="0"
+                        class="w-full p-2 border border-slate-200 rounded-lg text-center"
+                        placeholder="0">
+                </div>
+                <p class="col-span-3 text-[9px] text-slate-400 text-center">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Positive = add time, Negative = reduce time from base duration
+                </p>
+            </div>
+
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
                 <textarea name="description" id="service_desc" class="w-full p-2.5 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" rows="2"></textarea>
@@ -175,62 +233,83 @@
 
 <script>
     function openModal(type) {
-    // Reset Form for "Add" mode
-    document.getElementById('serviceForm').reset();
-    document.getElementById('serviceForm').action = "<?= base_url('admin/services/store') ?>";
-    document.getElementById('modalTitle').innerText = "Add New Service";
-    document.getElementById('statusDiv').classList.add('hidden');
-    document.getElementById('serviceModal').classList.remove('hidden');
-    toggleLevels(document.getElementById('has_levels'));
-}
-
-function openEditModal(btn) {
-    // Set Action to Update
-    const id = btn.getAttribute('data-id');
-    document.getElementById('serviceForm').action = "<?= base_url('admin/services/update') ?>/" + id;
-    document.getElementById('modalTitle').innerText = "Edit Service Details";
-    document.getElementById('statusDiv').classList.remove('hidden');
-
-    // Populate Fields
-    document.getElementById('service_id').value = id;
-    document.getElementById('service_name').value = btn.getAttribute('data-name');
-    document.getElementById('service_desc').value = btn.getAttribute('data-desc');
-    document.getElementById('service_status').value = btn.getAttribute('data-status');
-    
-    // Checkbox logic
-    const hasLevels = btn.getAttribute('data-haslevels') == '1';
-    const checkbox = document.getElementById('has_levels');
-    checkbox.checked = hasLevels;
-    
-    // Price fields
-    document.getElementById('price_input').value = btn.getAttribute('data-price');
-    document.getElementById('price_simple').value = btn.getAttribute('data-psimple');
-    document.getElementById('price_moderate').value = btn.getAttribute('data-pmoderate');
-    document.getElementById('price_severe').value = btn.getAttribute('data-psevere');
-
-    toggleLevels(checkbox); // Ipakita ang tamang price inputs
-    document.getElementById('serviceModal').classList.remove('hidden');
-}
-
-function closeModal() {
-    document.getElementById('serviceModal').classList.add('hidden');
-}
-
-function toggleLevels(checkbox) {
-    const singleDiv = document.getElementById('singlePriceDiv');
-    const levelDiv = document.getElementById('levelPricesDiv');
-    const priceInput = document.getElementById('price_input');
-
-    if (checkbox.checked) {
-        levelDiv.classList.remove('hidden');
-        singleDiv.classList.add('hidden');
-        priceInput.required = false;
-    } else {
-        levelDiv.classList.add('hidden');
-        singleDiv.classList.remove('hidden');
-        priceInput.required = !document.getElementById('service_id').value; // required lang kung walang ID (Add mode)
+        // Reset Form for "Add" mode
+        document.getElementById('serviceForm').reset();
+        document.getElementById('serviceForm').action = "<?= base_url('admin/services/store') ?>";
+        document.getElementById('modalTitle').innerText = "Add New Service";
+        document.getElementById('statusDiv').classList.add('hidden');
+        document.getElementById('serviceModal').classList.remove('hidden');
+        toggleLevels(document.getElementById('has_levels'));
     }
-}
+
+    function openEditModal(btn) {
+        // Set Action to Update
+        const id = btn.getAttribute('data-id');
+        document.getElementById('serviceForm').action = "<?= base_url('admin/services/update') ?>/" + id;
+        document.getElementById('modalTitle').innerText = "Edit Service Details";
+        document.getElementById('statusDiv').classList.remove('hidden');
+
+        // Populate Fields
+        document.getElementById('service_id').value = id;
+        document.getElementById('service_name').value = btn.getAttribute('data-name');
+        document.getElementById('service_desc').value = btn.getAttribute('data-desc');
+        document.getElementById('service_status').value = btn.getAttribute('data-status');
+        document.getElementById('estimated_duration').value = btn.getAttribute('data-duration') || 30;
+        document.getElementById('duration_simple').value = btn.getAttribute('data-dursimple') || 0;
+        document.getElementById('duration_moderate').value = btn.getAttribute('data-durmoderate') || 0;
+        document.getElementById('duration_severe').value = btn.getAttribute('data-dursevere') || 0;
+
+        // Checkbox logic
+        const hasLevels = btn.getAttribute('data-haslevels') == '1';
+        const checkbox = document.getElementById('has_levels');
+        checkbox.checked = hasLevels;
+
+        // Price fields
+        document.getElementById('price_input').value = btn.getAttribute('data-price');
+        document.getElementById('price_simple').value = btn.getAttribute('data-psimple');
+        document.getElementById('price_moderate').value = btn.getAttribute('data-pmoderate');
+        document.getElementById('price_severe').value = btn.getAttribute('data-psevere');
+
+        toggleLevels(checkbox); // Ipakita ang tamang price inputs
+        document.getElementById('serviceModal').classList.remove('hidden');
+        toggleDurationAdjustments(document.getElementById('has_levels'));
+
+        document.getElementById('serviceModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('serviceModal').classList.add('hidden');
+    }
+
+    function toggleDurationAdjustments(checkbox) {
+        const durationDiv = document.getElementById('durationAdjustmentsDiv');
+
+        if (checkbox.checked) {
+            durationDiv.classList.remove('hidden');
+        } else {
+            durationDiv.classList.add('hidden');
+        }
+    }
+
+    // ✅ Update toggleLevels to also call duration toggle
+    function toggleLevels(checkbox) {
+        const singleDiv = document.getElementById('singlePriceDiv');
+        const levelDiv = document.getElementById('levelPricesDiv');
+        const priceInput = document.getElementById('price_input');
+
+        if (checkbox.checked) {
+            levelDiv.classList.remove('hidden');
+            singleDiv.classList.add('hidden');
+            priceInput.required = false;
+        } else {
+            levelDiv.classList.add('hidden');
+            singleDiv.classList.remove('hidden');
+            priceInput.required = !document.getElementById('service_id').value;
+        }
+
+        // ✅ Also toggle duration adjustments
+        toggleDurationAdjustments(checkbox);
+    }
 
     function filterTable() {
         let input = document.getElementById("searchInput").value.toLowerCase();

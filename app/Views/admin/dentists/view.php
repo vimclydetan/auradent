@@ -2,7 +2,7 @@
 
 <?= $this->section('content') ?>
 <div class="container mx-auto max-w-5xl">
-    
+
     <!-- Breadcrumbs / Back Button -->
     <div class="mb-6">
         <a href="<?= base_url('admin/dentists') ?>" class="text-slate-500 hover:text-blue-600 transition flex items-center text-sm font-medium">
@@ -11,21 +11,30 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         <!-- LEFT COLUMN: Profile Card -->
         <div class="lg:col-span-1">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="h-24 bg-gradient-to-r from-blue-500 to-blue-700"></div>
                 <div class="px-6 pb-6 flex flex-col items-center -mt-12">
-                    <img class="h-32 w-32 rounded-2xl object-cover border-4 border-white shadow-md bg-white" 
-                         src="<?= base_url('uploads/profile/' . ($dentist['profile_pic'] ?: 'default.png')) ?>" 
-                         alt="Profile">
+                    <img class="h-32 w-32 rounded-2xl object-cover border-4 border-white shadow-md bg-white"
+                        src="<?= base_url('uploads/profile/' . ($dentist['profile_pic'] ?: 'default.png')) ?>"
+                        alt="Profile">
                     <h2 class="mt-4 text-xl font-bold text-slate-800 text-center">
                         <?= esc($dentist['first_name'] . ' ' . $dentist['last_name']) ?>
                     </h2>
                     <p class="text-blue-600 font-semibold text-sm uppercase tracking-wider">
                         <?= esc($dentist['role']) ?>
                     </p>
+                    <?php if ($dentist['dentist_type'] === 'On-call'): ?>
+                        <span class="mt-2 px-3 py-1 bg-amber-100 text-amber-600 text-[10px] font-bold rounded-full border border-amber-200 uppercase">
+                            <i class="fas fa-phone-alt mr-1"></i> On-call Dentist
+                        </span>
+                    <?php else: ?>
+                        <span class="mt-2 px-3 py-1 bg-green-100 text-green-600 text-[10px] font-bold rounded-full border border-green-200 uppercase">
+                            <i class="fas fa-user-check mr-1"></i> Regular Dentist
+                        </span>
+                    <?php endif; ?>
                     
                     <div class="w-full mt-6 pt-6 border-t border-slate-100 flex justify-around text-center">
                         <div>
@@ -56,7 +65,7 @@
 
         <!-- RIGHT COLUMN: Detailed Info -->
         <div class="lg:col-span-2 space-y-6">
-            
+
             <!-- Personal Information -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
                 <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center">
@@ -65,7 +74,7 @@
                     </span>
                     Personal Information
                 </h3>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
                     <div>
                         <p class="text-xs text-slate-400 uppercase font-bold mb-1 tracking-tight">Full Name</p>
@@ -92,7 +101,7 @@
                     </span>
                     Address Details
                 </h3>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <p class="text-xs text-slate-400 uppercase font-bold mb-1">House No. & Street</p>
@@ -121,7 +130,7 @@
                     </span>
                     Account Credentials
                 </h3>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <p class="text-xs text-slate-500 uppercase font-bold mb-1">Username</p>

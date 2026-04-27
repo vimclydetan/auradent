@@ -16,6 +16,8 @@ class ServiceModel extends Model
         'price_simple',
         'price_moderate',
         'price_severe',
-        'status'
+        'status',
+        'estimated_duration_minutes',
+        'duration_adjustments'
     ];
 }

@@ -30,7 +30,10 @@
 <!-- HEADER -->
 <div class="flex justify-between items-center mb-6">
     <div>
-        <h3 class="text-2xl font-bold text-slate-800 tracking-tight italic uppercase">👥 Patients Directory</h3>
+        <h3 class="text-2xl font-bold text-slate-800 tracking-tight italic uppercase flex items-center gap-2">
+            <i class="fas fa-users text-blue-600 mr-2"></i>
+            Patients Directory
+        </h3>
         <p class="text-xs text-slate-500">Manage patient records, view histories, and update profiles.</p>
     </div>
     <a href="<?= base_url('receptionist/walkin') ?>" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 shadow-lg font-bold transition-all active:scale-95 text-xs uppercase tracking-wider">
@@ -51,10 +54,6 @@
             <option value="Male">Male</option>
             <option value="Female">Female</option>
         </select>
-    </div>
-    <div class="space-y-1">
-        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filter by Last Visit</label>
-        <input type="date" id="lastVisitFilter" class="filter-input">
     </div>
     <div class="flex items-end">
         <button onclick="resetFilters()" class="w-full text-[10px] font-black text-red-500 hover:bg-red-50 py-3 rounded-lg border border-red-200 transition-all uppercase tracking-widest">Reset Filters</button>

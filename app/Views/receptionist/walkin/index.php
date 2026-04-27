@@ -102,7 +102,10 @@
 <div class="max-w-6xl mx-auto">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h3 class="text-2xl font-bold text-slate-800 italic uppercase tracking-tighter">🚶 Walk-in Consultation</h3>
+            <h3 class="text-2xl font-bold text-slate-800 italic uppercase tracking-tighter flex items-center gap-2">
+                <i class="fas fa-walking text-blue-600"></i>
+                Walk-in Consultation
+            </h3>
             <p class="text-sm text-slate-500">Record consultation for new or existing patient.</p>
         </div>
         <a href="<?= base_url('receptionist/dashboard') ?>" class="text-slate-400 hover:text-red-500 font-bold text-xs uppercase transition-all">Cancel</a>
